@@ -42,7 +42,7 @@
 
 - 仅使用epoll，不使用poll和select。
 
-- 使用c++14的`Lambada`表达式 与`auto`组合，完美替代`std::bind`与`std::placeholders`的组合，不仅更加简洁，也可以获得更高的效率。
+- 使用c++14的`Lambada`表达式 与`auto`组合，完美替代`std::bind`与`std::placeholders`的组合，更加方便地将成员函数作为回调函数，不仅更加简洁，也可以获得更高的效率。
 
   一个简单的echo服务器。以前的实现：
 
@@ -96,8 +96,6 @@
     TcpServer server_;
   };
   ```
-
-
 - 应用层的流量控制
 
   上面的这个 `echo` 实现非常简单，读者只需关注 `onMessage` 回调函数，它将收到消息发回客户端。然而，该实现有一个问题：若客户端只发送而不接收数据（即只调用`write`而不调用`read`），则TCP的流量控制（flow control）会导致数据堆积在服务端，最终会耗尽服务端内存。为解决该问题我们引入应用层的流量控制高/低水位回调：
@@ -166,6 +164,7 @@
     int timeout = getNextTimeout();
     poller_->poll(activeChannels_, timeout);
   ```
+- `TimeWheel`：可以为每个连接对象设置超时时间，在O(1)时间复杂度内可以剔除超时连接。
 
 整个程序在正常使用下，使用 `valgrind`工具检测内存，无内存泄露。以`echo_server`为例：
   ```bash
@@ -179,7 +178,6 @@
     ==6199== For lists of detected and suppressed errors, rerun with: -s
     ==6199== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
   ```
-- `TimeWheel`：可以为每个连接对象设置超时时间，在O(1)时间复杂度内可以剔除超时连接。
 ## 编译运行
 
 ```bash
