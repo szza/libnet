@@ -48,16 +48,20 @@ void Channel::handleEventsWithGuard()
   handlingEvents_ = true;
 
   if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN)) {
-    if (closeCallback_) closeCallback_();
+    if (closeCallback_) 
+      closeCallback_();
   }
   if (revents_ & EPOLLERR) {
-    if (errorCallback_) errorCallback_();
+    if (errorCallback_) 
+      errorCallback_();
   }
   if (revents_ & (EPOLLIN | EPOLLPRI | EPOLLRDHUP)) {
-    if (readCallback_) readCallback_();
+    if (readCallback_) 
+      readCallback_();
   }
-  if (revents_ & EPOLLOUT) {
-    if (writeCallback_) writeCallback_();
+  if (revents_ & C) {
+    if (writeCallback_) 
+      writeCallback_();
   }
 
   handlingEvents_ = false;

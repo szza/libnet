@@ -12,24 +12,24 @@ namespace net
 
 void defaultThreadInitCallback(size_t index)
 {
-    TRACE("EventLoop thread #%lu started", index);
+  TRACE("EventLoop thread #%lu started", index);
 }
 
 void defaultConnectionCallback(const TcpConnectionPtr& conn)
 {
-    INFO("connection %s -> %s %s",
-          conn->peer().toIpPort().c_str(),
-          conn->local().toIpPort().c_str(),
-          conn->connected() ? "up" : "down");
+  INFO("connection %s -> %s %s",
+        conn->peer().toIpPort().c_str(),
+        conn->local().toIpPort().c_str(),
+        conn->connected() ? "up" : "down");
 }
 
 void defaultMessageCallback(const TcpConnectionPtr& conn, Buffer& buffer)
 {
-    TRACE("connection %s -> %s recv %lu bytes",
-          conn->peer().toIpPort().c_str(),
-          conn->local().toIpPort().c_str(),
-          buffer.readableBytes());
-    buffer.retrieveAll();
+  TRACE("connection %s -> %s recv %lu bytes",
+        conn->peer().toIpPort().c_str(),
+        conn->local().toIpPort().c_str(),
+        buffer.readableBytes());
+  buffer.retrieveAll();
 }
 
 } // namespace -end
@@ -69,10 +69,9 @@ TcpConnection::~TcpConnection()
 
 void TcpConnection::connectEstablished()
 {
-    assert(state_ == kConnecting);
-    state_ = kConnected;
-    channel_->tie(shared_from_this());
-    channel_->enableRead();
+  assert(state_.exchange(kConnected) == kConnecting);
+  channel_->tie(shared_from_this());
+  channel_->enableRead();
 }
 
 bool TcpConnection::connected() const
@@ -170,28 +169,29 @@ void TcpConnection::sendInLoop(const std::string& message)
 
 void TcpConnection::send(Buffer& buffer)
 {
-    if (state_ != kConnected) {
-        WARN("TcpConnection::send() not connected, give up send");
-        return;
-    }
+  if (state_ != kConnected) {
+      WARN("TcpConnection::send() not connected, give up send");
+      return;
+  }
 
-    if (loop_->isInLoopThread()) 
-    {
-      sendInLoop(buffer.peek(), buffer.readableBytes());
-      buffer.retrieveAll();
-    }
-    else 
-    {
-      loop_->queueInLoop([this, str = buffer.retrieveAllAsString()]
-                        { 
-                          this->sendInLoop(str); 
-                        });
-    }
+  if (loop_->isInLoopThread()) 
+  {
+    sendInLoop(buffer.peek(), buffer.readableBytes());
+    buffer.retrieveAll();
+  }
+  else 
+  {
+    loop_->queueInLoop([this, str = buffer.retrieveAllAsString()]
+                      { 
+                        this->sendInLoop(str); 
+                      });
+  }
 }
 
 void TcpConnection::shutdown()
 {
   assert(state_ <= kDisconnecting);
+  // 状态交换
   if (state_.exchange(kDisconnecting) ==kConnected) {
     if (loop_->isInLoopThread())
     {
@@ -251,35 +251,35 @@ void TcpConnection::stopRead()
 
 void TcpConnection::startRead()
 {
-    loop_->runInLoop([this]
+  loop_->runInLoop([this]
+                    {
+                      if (!channel_->isReading())
                       {
-                       if (!channel_->isReading())
-                       {
-                        channel_->enableRead();
-                       }
-                      });
+                      channel_->enableRead();
+                      }
+                    });
 }
 
 void TcpConnection::handleRead()
 {
-    loop_->assertInLoopThread();
-    assert(state_ != kDisconnected);
-    int savedErrno;
-    ssize_t n = inputBuffer_->readFd(cfd_, &savedErrno);
-    if (n == -1) 
-    {
-      errno = savedErrno;
-      SYSERR("TcpConnection::read()");
-      handleError();
-    }
-    else if (n == 0)
-    {
-      handleClose();
-    }
-    else 
-    {
-      messageCallback_(shared_from_this(), *inputBuffer_);
-    }
+  loop_->assertInLoopThread();
+  assert(state_ != kDisconnected);
+  int savedErrno;
+  ssize_t n = inputBuffer_->readFd(cfd_, &savedErrno);
+  if (n == -1) 
+  {
+    errno = savedErrno;
+    SYSERR("TcpConnection::read()");
+    handleError();
+  }
+  else if (n == 0)
+  {
+    handleClose();
+  }
+  else 
+  {
+    messageCallback_(shared_from_this(), *inputBuffer_);
+  }
 }
 
 void TcpConnection::handleWrite()
@@ -321,19 +321,19 @@ void TcpConnection::handleWrite()
 
 void TcpConnection::handleClose()
 {
-    loop_->assertInLoopThread();
-    assert(state_ == kConnected || state_ == kDisconnecting);
-    state_ = kDisconnected;
-    loop_->removeChannel(channel_.get());
-    closeCallback_(this->shared_from_this());
+  loop_->assertInLoopThread();
+  assert(state_ == kConnected || state_ == kDisconnecting);
+  state_.load(kDisconnected);
+  loop_->removeChannel(channel_.get());
+  closeCallback_(this->shared_from_this());
 }
 
 void TcpConnection::handleError()
 {
-    int err;
-    socklen_t len = sizeof(err);
-    int ret = getsockopt(cfd_, SOL_SOCKET, SO_ERROR, &err, &len);
-    if (ret != -1)
-        errno = err;
-    SYSERR("TcpConnection::handleError()");
+  int err;
+  socklen_t len = sizeof(err);
+  int ret = getsockopt(cfd_, SOL_SOCKET, SO_ERROR, &err, &len);
+  if (ret != -1)
+      errno = err;
+  SYSERR("TcpConnection::handleError()");
 }

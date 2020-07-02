@@ -35,7 +35,7 @@ private:
 
 class TimeWheel { 
 public:
-  TimeWheel(EventLoop* loop, Microsecond expiration=10s)
+  TimeWheel(EventLoop* loop, Microsecond expiration=0s)
   : loop_(loop),
     index_(0),
     expired_(std::chrono::duration_cast<Second>(expiration).count())
