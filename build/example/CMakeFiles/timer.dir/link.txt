@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -O0 -Wall -Wextra -Werror -Wconversion -Wno-unused-parameter -Wold-style-cast -Woverloaded-virtual -Wpointer-arith -Wshadow -Wwrite-strings -march=native -std=c++17 -rdynamic -g  -rdynamic CMakeFiles/timer.dir/TimerLoop.cc.o  -o ../bin/timer  ../lib/libsrc.a -lpthread 

@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -O0 -Wall -Wextra -Werror -Wconversion -Wno-unused-parameter -Wold-style-cast -Woverloaded-virtual -Wpointer-arith -Wshadow -Wwrite-strings -march=native -std=c++17 -rdynamic -g  -rdynamic CMakeFiles/echo_server.dir/EchoServer.cc.o  -o ../bin/echo_server  ../lib/libsrc.a -lpthread 
