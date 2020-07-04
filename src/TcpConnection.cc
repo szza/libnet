@@ -322,8 +322,7 @@ void TcpConnection::handleWrite()
 void TcpConnection::handleClose()
 {
   loop_->assertInLoopThread();
-  assert(state_ == kConnected || state_ == kDisconnecting);
-  state_.load(kDisconnected);
+  assert(state_ .exchange(kDisconnected) <= kDisconnecting);
   loop_->removeChannel(channel_.get());
   closeCallback_(this->shared_from_this());
 }

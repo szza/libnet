@@ -59,7 +59,7 @@ void Channel::handleEventsWithGuard()
     if (readCallback_) 
       readCallback_();
   }
-  if (revents_ & C) {
+  if (revents_ & EPOLLOUT) {
     if (writeCallback_) 
       writeCallback_();
   }

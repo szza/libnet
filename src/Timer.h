@@ -46,7 +46,7 @@ public:
 private:
   TimerCallback callback_;
   Timestamp     when_;
-  Microsecond    interval_;
+  Microsecond   interval_;
   bool          repeat_;
   bool          canceled_;
 };
