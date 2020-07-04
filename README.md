@@ -185,7 +185,51 @@
   cmake ..
   make -j 12 # 根据自己电脑线程设置
 ```
+## 运行状态简要分析  
 
+设置loop线程为4个时，使用`lsof -c echo_server`命令可以查看 `echo_server`进程的所有打开的fd。下面仅贴出了针对`echo_server`有关的信息：
+```cpp
+  szza@azzs:/mnt/hgfs/self_study/MyPro/unitest$ lsof -c echo_server
+  COMMAND     PID USER   FD      TYPE DEVICE SIZE/OFF   NODE NAME
+  echo_serv 17504 szza    0u      CHR  136,2      0t0      5 /dev/pts/2
+  echo_serv 17504 szza    1u      CHR  136,2      0t0      5 /dev/pts/2
+  echo_serv 17504 szza    2u      CHR  136,2      0t0      5 /dev/pts/2
+  echo_serv 17504 szza    3u  a_inode   0,14        0  11519 [eventfd]
+  echo_serv 17504 szza    4u  a_inode   0,14        0  11519 [eventpoll]
+  echo_serv 17504 szza    5u  a_inode   0,14        0  11519 [timerfd]
+  echo_serv 17504 szza    6u     IPv4 289591      0t0    TCP *:9877 (LISTEN)
+  echo_serv 17504 szza    7r      CHR    1,3      0t0      6 /dev/null
+  echo_serv 17504 szza    8u  a_inode   0,14        0  11519 [eventfd]
+  echo_serv 17504 szza    9u  a_inode   0,14        0  11519 [eventpoll]
+  echo_serv 17504 szza   10u  a_inode   0,14        0  11519 [timerfd]
+  echo_serv 17504 szza   11u     IPv4 299009      0t0    TCP *:9877 (LISTEN)
+  echo_serv 17504 szza   12r      CHR    1,3      0t0      6 /dev/null
+  echo_serv 17504 szza   13u  a_inode   0,14        0  11519 [eventfd]
+  echo_serv 17504 szza   14u  a_inode   0,14        0  11519 [eventpoll]
+  echo_serv 17504 szza   15u  a_inode   0,14        0  11519 [timerfd]
+  echo_serv 17504 szza   16u     IPv4 283456      0t0    TCP *:9877 (LISTEN)
+  echo_serv 17504 szza   17r      CHR    1,3      0t0      6 /dev/null
+  echo_serv 17504 szza   18u  a_inode   0,14        0  11519 [eventfd]
+  echo_serv 17504 szza   19u  a_inode   0,14        0  11519 [eventpoll]
+  echo_serv 17504 szza   20u  a_inode   0,14        0  11519 [timerfd]
+  echo_serv 17504 szza   21u     IPv4 298745      0t0    TCP *:9877 (LISTEN)
+  echo_serv 17504 szza   22r      CHR    1,3      0t0      6 /dev/null
+```
+由上面可知：
++ 0-2：是标准输入、输出流和错误对应的fd
++ 3-7：这5个，是一个loop打开的文件描述符。由于共四个线程，因此四个线程一共打开了 4*5=20个文件描述符
+
+再使用`nc -v 127.0.0.1 9877`创建一个客户端，可以看到此时的客户端和服务器的状态：
+```cpp
+  szza@azzs:/mnt/hgfs/self_study/MyPro/unitest$ lsof -i:9877
+  COMMAND     PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+  echo_serv 17504 szza    6u  IPv4 289591      0t0  TCP *:9877 (LISTEN)
+  echo_serv 17504 szza   11u  IPv4 299009      0t0  TCP *:9877 (LISTEN)
+  echo_serv 17504 szza   16u  IPv4 283456      0t0  TCP *:9877 (LISTEN)
+  echo_serv 17504 szza   21u  IPv4 298745      0t0  TCP *:9877 (LISTEN)
+  echo_serv 17504 szza   23u  IPv4 307261      0t0  TCP localhost:9877->localhost:35860 (ESTABLISHED)
+  nc        17862 szza    3u  IPv4 305420      0t0  TCP localhost:35860->localhost:9877 (ESTABLISHED)
+```
 ## 笔记
 
 网络库的具体实现方法参考 [我的github关于网络编程博客](https://github.com/szza/LearningNote/tree/master/8.%E5%BC%80%E6%BA%90%E9%A1%B9%E7%9B%AE)。
